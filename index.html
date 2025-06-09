@@ -7,12 +7,13 @@
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            background-color: #f5f5f5;
+            background-color: #333333; /* Darkened background */
             margin: 0;
             padding: 20px;
             display: flex;
             flex-direction: column;
             min-height: 100vh;
+            color: white;
         }
         
         .container {
@@ -34,18 +35,18 @@
             max-height: 350px;
             object-fit: contain;
             border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
             transition: transform 0.2s;
         }
         
         .card-display-info {
             text-align: center;
             margin-top: 10px;
-            background: white;
+            background: #444;
             padding: 10px;
             border-radius: 5px;
             width: 100%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         
         .tier-list-container {
@@ -58,7 +59,7 @@
             display: flex;
             margin-bottom: 10px;
             min-height: 120px;
-            background-color: rgba(255,255,255,0.7);
+            background-color: rgba(255,255,255,0.1);
             border-radius: 5px;
             overflow: hidden;
         }
@@ -70,9 +71,31 @@
             justify-content: center;
             font-weight: bold;
             color: white;
-            background-color: #333;
+            font-size: 1.2em;
             cursor: pointer;
             user-select: none;
+        }
+        
+        /* Colorful tier labels */
+        .tier-label[contenteditable="true"]:nth-child(1) {
+            background-color: #FF5252; /* S Tier - Red */
+        }
+        .tier-label[contenteditable="true"]:nth-child(2) {
+            background-color: #FF9800; /* A Tier - Orange */
+        }
+        .tier-label[contenteditable="true"]:nth-child(3) {
+            background-color: #FFEB3B; /* B Tier - Yellow */
+            color: #333;
+        }
+        .tier-label[contenteditable="true"]:nth-child(4) {
+            background-color: #4CAF50; /* C Tier - Green */
+        }
+        .tier-label[contenteditable="true"]:nth-child(5) {
+            background-color: #2196F3; /* D Tier - Blue */
+        }
+        /* Additional tiers will get this default color */
+        .tier-label[contenteditable="true"]:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(4)):not(:nth-child(5)) {
+            background-color: #9C27B0; /* Purple for custom tiers */
         }
         
         .tier-label.editable {
@@ -86,7 +109,7 @@
             align-content: flex-start;
             padding: 5px;
             gap: 5px;
-            background-color: rgba(255,255,255,0.5);
+            background-color: rgba(255,255,255,0.1);
         }
         
         .card-pool {
@@ -94,10 +117,10 @@
             flex-wrap: wrap;
             gap: 10px;
             padding: 15px;
-            background-color: #fff;
+            background-color: #444;
             border-radius: 10px;
             margin-top: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
         
         .card {
@@ -111,22 +134,23 @@
             width: 100%;
             height: auto;
             border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         
         .card-info {
             text-align: center;
             font-size: 12px;
             margin-top: 5px;
-            background: rgba(255,255,255,0.8);
+            background: rgba(0,0,0,0.5);
             padding: 3px;
             border-radius: 3px;
         }
         
         .card.dragging {
-            transform: scale(1.2);
+            transform: scale(1.5);
             z-index: 100;
             cursor: grabbing;
+            opacity: 0.8;
         }
         
         .tier-card {
@@ -142,8 +166,9 @@
         
         h1 {
             text-align: center;
-            color: #333;
+            color: white;
             margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
         
         .controls {
@@ -161,38 +186,18 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
         
         button:hover {
             background-color: #45a049;
         }
         
-        .set-filter {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        
-        .set-filter label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            cursor: pointer;
-        }
+        /* Remove set filter styles since we're removing that functionality */
     </style>
 </head>
 <body>
     <h1>BBWF Illustration Rares Tier List</h1>
-    
-    <div class="set-filter">
-        <label>
-            <input type="checkbox" id="filter-blackbolt" checked> Black Bolt
-        </label>
-        <label>
-            <input type="checkbox" id="filter-whiteflare" checked> White Flare
-        </label>
-    </div>
     
     <div class="controls">
         <button id="add-tier">Add Tier</button>
@@ -236,12 +241,11 @@
     
     <div class="card-pool" id="card-pool">
         <!-- Cards will be inserted here by JavaScript -->
-      </div>
-
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Card data - this would be generated from your provided HTML
+            // Card data - updated with missing cards
             const cardData = [
                 // Black Bolt cards
                 {id: "sv11b-087", name: "Snivy", number: "087/173", dex: "495", set: "blackbolt", img: "https://github.com/TheRSigma/BBWFTierList/blob/main/images/blackbolt-87.jpg?raw=true"},
@@ -322,7 +326,8 @@
                 {id: "sv11b-170", name: "Meloetta", number: "170/173", dex: "648", set: "blackbolt", img: "https://github.com/TheRSigma/BBWFTierList/blob/main/images/blackbolt-170.jpg?raw=true"},
                 {id: "sv11b-171", name: "Excadrill", number: "171/173", dex: "530", set: "blackbolt", img: "https://github.com/TheRSigma/BBWFTierList/blob/main/images/blackbolt-171.jpg?raw=true"},
                 {id: "sv11b-172", name: "Genesect", number: "172/173", dex: "649", set: "blackbolt", img: "https://github.com/TheRSigma/BBWFTierList/blob/main/images/blackbolt-172.jpg?raw=true"},
-                {id: "sv11b-173", name: "N", number: "173/173", dex: "000", set: "blackbolt", img: "https://github.com/TheRSigma/BBWFTierList/blob/main/images/blackbolt-173.jpg?raw=true"}
+                {id: "sv11b-173", name: "N", number: "173/173", dex: "000", set: "blackbolt", img: "https://github.com/TheRSigma/BBWFTierList/blob/main/images/blackbolt-173.jpg?raw=true"},
+                
                 // White Flare cards
                 {id: "sv11w-087", name: "Sewaddle", number: "087/173", dex: "540", set: "whiteflare", img: "https://github.com/TheRSigma/BBWFTierList/blob/main/images/whiteflare-87.jpg?raw=true"},
                 {id: "sv11w-088", name: "Swadloon", number: "088/173", dex: "541", set: "whiteflare", img: "https://github.com/TheRSigma/BBWFTierList/blob/main/images/whiteflare-88.jpg?raw=true"},
@@ -414,6 +419,9 @@
             // Store card elements for easy access
             const cardElements = {};
             
+            // Track which cards are in the tier list
+            const cardsInTiers = new Set();
+            
             // Function to create card element
             function createCardElement(card) {
                 const cardElement = document.createElement('div');
@@ -447,31 +455,20 @@
                 cardElement.appendChild(img);
                 cardElement.appendChild(cardInfo);
                 
-                // Add click event to show large card
-                cardElement.addEventListener('click', function() {
-                    largeCard.src = card.img;
-                    largeCard.alt = card.name;
-                    largeCardName.textContent = card.name;
-                    largeCardNumber.textContent = `${card.number} (#${card.dex})`;
-                });
-                
                 // Store reference
                 cardElements[card.id] = cardElement;
                 
                 return cardElement;
             }
             
-            // Function to render cards based on filters
+            // Function to render cards
             function renderCards() {
                 cardPool.innerHTML = '';
                 
-                const showBlackBolt = document.getElementById('filter-blackbolt').checked;
-                const showWhiteFlare = document.getElementById('filter-whiteflare').checked;
-                
                 cardData.forEach(card => {
-                    if ((card.set === 'blackbolt' && showBlackBolt) || 
-                        (card.set === 'whiteflare' && showWhiteFlare)) {
-                        cardPool.appendChild(createCardElement(card));
+                    if (!cardsInTiers.has(card.id)) {
+                        const cardElement = createCardElement(card);
+                        cardPool.appendChild(cardElement);
                     }
                 });
                 
@@ -504,6 +501,15 @@
                 draggedCard = this;
                 setTimeout(() => {
                     this.classList.add('dragging');
+                    
+                    // Show large card when dragging starts
+                    const cardId = this.getAttribute('data-id');
+                    const card = cardElements[cardId];
+                    
+                    largeCard.src = card.querySelector('img').src;
+                    largeCard.alt = card.getAttribute('data-name');
+                    largeCardName.textContent = card.getAttribute('data-name');
+                    largeCardNumber.textContent = `${card.getAttribute('data-number')} (#${card.getAttribute('data-dex')})`;
                 }, 0);
             }
             
@@ -527,33 +533,44 @@
             function drop() {
                 this.classList.remove('drag-over');
                 
-                // Create a new card for the tier
-                const tierCard = document.createElement('div');
-                tierCard.className = 'tier-card';
-                tierCard.setAttribute('data-id', draggedCard.getAttribute('data-id'));
+                const cardId = draggedCard.getAttribute('data-id');
                 
-                const img = document.createElement('img');
-                img.src = draggedCard.querySelector('img').src;
-                img.alt = draggedCard.getAttribute('data-name');
-                
-                tierCard.appendChild(img);
-                
-                // Add click event to show large card
-                tierCard.addEventListener('click', function() {
-                    const cardId = this.getAttribute('data-id');
-                    const card = cardElements[cardId];
+                // Only proceed if the card isn't already in a tier
+                if (!cardsInTiers.has(cardId)) {
+                    // Create a new card for the tier
+                    const tierCard = document.createElement('div');
+                    tierCard.className = 'tier-card';
+                    tierCard.setAttribute('data-id', cardId);
                     
-                    largeCard.src = card.querySelector('img').src;
-                    largeCard.alt = card.getAttribute('data-name');
-                    largeCardName.textContent = card.getAttribute('data-name');
-                    largeCardNumber.textContent = `${card.getAttribute('data-number')} (#${card.getAttribute('data-dex')})`;
-                });
-                
-                // Add to tier
-                this.appendChild(tierCard);
-                
-                // Adjust card sizes if tier is getting full
-                adjustCardSizes(this);
+                    const img = document.createElement('img');
+                    img.src = draggedCard.querySelector('img').src;
+                    img.alt = draggedCard.getAttribute('data-name');
+                    
+                    tierCard.appendChild(img);
+                    
+                    // Add click event to show large card
+                    tierCard.addEventListener('click', function() {
+                        const clickedCardId = this.getAttribute('data-id');
+                        const clickedCard = cardElements[clickedCardId];
+                        
+                        largeCard.src = clickedCard.querySelector('img').src;
+                        largeCard.alt = clickedCard.getAttribute('data-name');
+                        largeCardName.textContent = clickedCard.getAttribute('data-name');
+                        largeCardNumber.textContent = `${clickedCard.getAttribute('data-number')} (#${clickedCard.getAttribute('data-dex')})`;
+                    });
+                    
+                    // Add to tier
+                    this.appendChild(tierCard);
+                    
+                    // Mark card as being in a tier
+                    cardsInTiers.add(cardId);
+                    
+                    // Remove from card pool
+                    draggedCard.remove();
+                    
+                    // Adjust card sizes if tier is getting full
+                    adjustCardSizes(this);
+                }
             }
             
             // Adjust card sizes in a tier based on how many cards are in it
@@ -656,6 +673,9 @@
                         cardsContainer.innerHTML = '';
                     });
                     
+                    // Clear cards in tiers tracking
+                    cardsInTiers.clear();
+                    
                     // Load saved tiers
                     const tierList = JSON.parse(savedTierList);
                     
@@ -718,12 +738,18 @@
                                 });
                                 
                                 tierCards.appendChild(tierCard);
+                                
+                                // Mark card as being in a tier
+                                cardsInTiers.add(cardId);
                             }
                         });
                         
                         // Adjust card sizes
                         adjustCardSizes(tierCards);
                     });
+                    
+                    // Re-render card pool to exclude cards in tiers
+                    renderCards();
                     
                     alert('Tier list loaded!');
                 } else {
@@ -751,12 +777,14 @@
                             tierListContainer.removeChild(tier);
                         }
                     });
+                    
+                    // Clear cards in tiers tracking
+                    cardsInTiers.clear();
+                    
+                    // Re-render all cards
+                    renderCards();
                 }
             });
-            
-            // Set filter event listeners
-            document.getElementById('filter-blackbolt').addEventListener('change', renderCards);
-            document.getElementById('filter-whiteflare').addEventListener('change', renderCards);
             
             // Initial render
             renderCards();
