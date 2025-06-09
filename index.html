@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BBWF Illustration Rares Tier List</title>
+    <title>Black Bolt + White Flare Illustration Rares Tier List</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            background-color: #333333; /* Darkened background */
+            background-color: #333333;
             margin: 0;
             padding: 20px;
             display: flex;
@@ -26,6 +26,7 @@
             width: 250px;
             display: flex;
             flex-direction: column;
+            justify-content: flex-end; /* Align with bottom of tier list */
             align-items: center;
             position: relative;
         }
@@ -77,24 +78,24 @@
         }
         
         /* Colorful tier labels */
-        .tier-label[contenteditable="true"]:nth-child(1) {
+        .tier-row:nth-child(1) .tier-label {
             background-color: #FF5252; /* S Tier - Red */
         }
-        .tier-label[contenteditable="true"]:nth-child(2) {
+        .tier-row:nth-child(2) .tier-label {
             background-color: #FF9800; /* A Tier - Orange */
         }
-        .tier-label[contenteditable="true"]:nth-child(3) {
+        .tier-row:nth-child(3) .tier-label {
             background-color: #FFEB3B; /* B Tier - Yellow */
             color: #333;
         }
-        .tier-label[contenteditable="true"]:nth-child(4) {
+        .tier-row:nth-child(4) .tier-label {
             background-color: #4CAF50; /* C Tier - Green */
         }
-        .tier-label[contenteditable="true"]:nth-child(5) {
+        .tier-row:nth-child(5) .tier-label {
             background-color: #2196F3; /* D Tier - Blue */
         }
         /* Additional tiers will get this default color */
-        .tier-label[contenteditable="true"]:not(:nth-child(1)):not(:nth-child(2)):not(:nth-child(3)):not(:nth-child(4)):not(:nth-child(5)) {
+        .tier-row:nth-child(n+6) .tier-label {
             background-color: #9C27B0; /* Purple for custom tiers */
         }
         
@@ -110,6 +111,7 @@
             padding: 5px;
             gap: 5px;
             background-color: rgba(255,255,255,0.1);
+            min-height: 110px;
         }
         
         .card-pool {
@@ -121,6 +123,7 @@
             border-radius: 10px;
             margin-top: 20px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            min-height: 110px;
         }
         
         .card {
@@ -156,6 +159,14 @@
         .tier-card {
             width: 80px;
             transition: all 0.2s;
+            cursor: grab;
+        }
+        
+        .tier-card.dragging {
+            transform: scale(1.2);
+            z-index: 100;
+            cursor: grabbing;
+            opacity: 0.8;
         }
         
         .tier-card img {
@@ -193,7 +204,10 @@
             background-color: #45a049;
         }
         
-        /* Remove set filter styles since we're removing that functionality */
+        .drag-over {
+            background-color: rgba(255, 255, 255, 0.2) !important;
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -461,6 +475,25 @@
                 return cardElement;
             }
             
+            // Function to create tier card element
+            function createTierCardElement(cardId) {
+                const card = cardElements[cardId];
+                if (!card) return null;
+                
+                const tierCard = document.createElement('div');
+                tierCard.className = 'tier-card';
+                tierCard.setAttribute('data-id', cardId);
+                tierCard.setAttribute('draggable', 'true');
+                
+                const img = document.createElement('img');
+                img.src = card.querySelector('img').src;
+                img.alt = card.getAttribute('data-name');
+                
+                tierCard.appendChild(img);
+                
+                return tierCard;
+            }
+            
             // Function to render cards
             function renderCards() {
                 cardPool.innerHTML = '';
@@ -479,26 +512,70 @@
             // Initialize drag and drop functionality
             function initDragAndDrop() {
                 const cards = document.querySelectorAll('.card');
-                const tierCards = document.querySelectorAll('.tier-cards');
+                const tierCards = document.querySelectorAll('.tier-card');
+                const tierContainers = document.querySelectorAll('.tier-cards');
+                const cardPoolContainer = document.getElementById('card-pool');
                 
+                // Clear existing event listeners
                 cards.forEach(card => {
+                    card.removeEventListener('dragstart', dragStart);
+                    card.removeEventListener('dragend', dragEnd);
                     card.addEventListener('dragstart', dragStart);
                     card.addEventListener('dragend', dragEnd);
                 });
                 
-                tierCards.forEach(tier => {
-                    tier.addEventListener('dragover', dragOver);
-                    tier.addEventListener('dragenter', dragEnter);
-                    tier.addEventListener('dragleave', dragLeave);
-                    tier.addEventListener('drop', drop);
+                tierCards.forEach(card => {
+                    card.removeEventListener('dragstart', tierCardDragStart);
+                    card.removeEventListener('dragend', tierCardDragEnd);
+                    card.addEventListener('dragstart', tierCardDragStart);
+                    card.addEventListener('dragend', tierCardDragEnd);
                 });
+                
+                tierContainers.forEach(container => {
+                    container.removeEventListener('dragover', dragOver);
+                    container.removeEventListener('dragenter', dragEnter);
+                    container.removeEventListener('dragleave', dragLeave);
+                    container.removeEventListener('drop', tierDrop);
+                    container.addEventListener('dragover', dragOver);
+                    container.addEventListener('dragenter', dragEnter);
+                    container.addEventListener('dragleave', dragLeave);
+                    container.addEventListener('drop', tierDrop);
+                });
+                
+                cardPoolContainer.removeEventListener('dragover', dragOver);
+                cardPoolContainer.removeEventListener('dragenter', dragEnter);
+                cardPoolContainer.removeEventListener('dragleave', dragLeave);
+                cardPoolContainer.removeEventListener('drop', cardPoolDrop);
+                cardPoolContainer.addEventListener('dragover', dragOver);
+                cardPoolContainer.addEventListener('dragenter', dragEnter);
+                cardPoolContainer.addEventListener('dragleave', dragLeave);
+                cardPoolContainer.addEventListener('drop', cardPoolDrop);
             }
             
             // Drag and drop functions
             let draggedCard = null;
+            let draggedCardType = null; // 'card' or 'tier-card'
             
             function dragStart() {
                 draggedCard = this;
+                draggedCardType = 'card';
+                setTimeout(() => {
+                    this.classList.add('dragging');
+                    
+                    // Show large card when dragging starts
+                    const cardId = this.getAttribute('data-id');
+                    const card = cardElements[cardId];
+                    
+                    largeCard.src = card.querySelector('img').src;
+                    largeCard.alt = card.getAttribute('data-name');
+                    largeCardName.textContent = card.getAttribute('data-name');
+                    largeCardNumber.textContent = `${card.getAttribute('data-number')} (#${card.getAttribute('data-dex')})`;
+                }, 0);
+            }
+            
+            function tierCardDragStart() {
+                draggedCard = this;
+                draggedCardType = 'tier-card';
                 setTimeout(() => {
                     this.classList.add('dragging');
                     
@@ -515,6 +592,14 @@
             
             function dragEnd() {
                 this.classList.remove('dragging');
+                draggedCard = null;
+                draggedCardType = null;
+            }
+            
+            function tierCardDragEnd() {
+                this.classList.remove('dragging');
+                draggedCard = null;
+                draggedCardType = null;
             }
             
             function dragOver(e) {
@@ -530,46 +615,108 @@
                 this.classList.remove('drag-over');
             }
             
-            function drop() {
+            function tierDrop() {
                 this.classList.remove('drag-over');
                 
-                const cardId = draggedCard.getAttribute('data-id');
-                
-                // Only proceed if the card isn't already in a tier
-                if (!cardsInTiers.has(cardId)) {
-                    // Create a new card for the tier
-                    const tierCard = document.createElement('div');
-                    tierCard.className = 'tier-card';
-                    tierCard.setAttribute('data-id', cardId);
+                if (draggedCardType === 'card') {
+                    // Moving from card pool to tier
+                    const cardId = draggedCard.getAttribute('data-id');
                     
-                    const img = document.createElement('img');
-                    img.src = draggedCard.querySelector('img').src;
-                    img.alt = draggedCard.getAttribute('data-name');
-                    
-                    tierCard.appendChild(img);
-                    
-                    // Add click event to show large card
-                    tierCard.addEventListener('click', function() {
-                        const clickedCardId = this.getAttribute('data-id');
-                        const clickedCard = cardElements[clickedCardId];
+                    // Only proceed if the card isn't already in a tier
+                    if (!cardsInTiers.has(cardId)) {
+                        const tierCard = createTierCardElement(cardId);
                         
-                        largeCard.src = clickedCard.querySelector('img').src;
-                        largeCard.alt = clickedCard.getAttribute('data-name');
-                        largeCardName.textContent = clickedCard.getAttribute('data-name');
-                        largeCardNumber.textContent = `${clickedCard.getAttribute('data-number')} (#${clickedCard.getAttribute('data-dex')})`;
-                    });
+                        if (tierCard) {
+                            // Add click event to show large card
+                            tierCard.addEventListener('click', function() {
+                                const clickedCardId = this.getAttribute('data-id');
+                                const clickedCard = cardElements[clickedCardId];
+                                
+                                largeCard.src = clickedCard.querySelector('img').src;
+                                largeCard.alt = clickedCard.getAttribute('data-name');
+                                largeCardName.textContent = clickedCard.getAttribute('data-name');
+                                largeCardNumber.textContent = `${clickedCard.getAttribute('data-number')} (#${clickedCard.getAttribute('data-dex')})`;
+                            });
+                            
+                            // Add to tier
+                            this.appendChild(tierCard);
+                            
+                            // Mark card as being in a tier
+                            cardsInTiers.add(cardId);
+                            
+                            // Remove from card pool
+                            draggedCard.remove();
+                            
+                            // Adjust card sizes if tier is getting full
+                            adjustCardSizes(this);
+                            
+                            // Reinitialize drag and drop for the new card
+                            initDragAndDrop();
+                        }
+                    }
+                } else if (draggedCardType === 'tier-card') {
+                    // Moving between tiers
+                    const cardId = draggedCard.getAttribute('data-id');
+                    const tierCard = createTierCardElement(cardId);
                     
-                    // Add to tier
-                    this.appendChild(tierCard);
+                    if (tierCard) {
+                        // Add click event to show large card
+                        tierCard.addEventListener('click', function() {
+                            const clickedCardId = this.getAttribute('data-id');
+                            const clickedCard = cardElements[clickedCardId];
+                            
+                            largeCard.src = clickedCard.querySelector('img').src;
+                            largeCard.alt = clickedCard.getAttribute('data-name');
+                            largeCardName.textContent = clickedCard.getAttribute('data-name');
+                            largeCardNumber.textContent = `${clickedCard.getAttribute('data-number')} (#${clickedCard.getAttribute('data-dex')})`;
+                        });
+                        
+                        // Add to tier
+                        this.appendChild(tierCard);
+                        
+                        // Remove old card
+                        draggedCard.remove();
+                        
+                        // Adjust card sizes if tier is getting full
+                        adjustCardSizes(this);
+                        
+                        // Reinitialize drag and drop for the new card
+                        initDragAndDrop();
+                    }
+                }
+            }
+            
+            function cardPoolDrop() {
+                this.classList.remove('drag-over');
+                
+                if (draggedCardType === 'tier-card') {
+                    // Moving from tier back to card pool
+                    const cardId = draggedCard.getAttribute('data-id');
+                    const card = cardElements[cardId];
                     
-                    // Mark card as being in a tier
-                    cardsInTiers.add(cardId);
-                    
-                    // Remove from card pool
-                    draggedCard.remove();
-                    
-                    // Adjust card sizes if tier is getting full
-                    adjustCardSizes(this);
+                    // Only proceed if the card exists
+                    if (card) {
+                        // Add back to card pool
+                        const newCard = createCardElement({
+                            id: cardId,
+                            name: card.getAttribute('data-name'),
+                            number: card.getAttribute('data-number'),
+                            dex: card.getAttribute('data-dex'),
+                            set: card.getAttribute('data-set'),
+                            img: card.querySelector('img').src
+                        });
+                        
+                        this.appendChild(newCard);
+                        
+                        // Remove from cards in tiers
+                        cardsInTiers.delete(cardId);
+                        
+                        // Remove old card
+                        draggedCard.remove();
+                        
+                        // Reinitialize drag and drop for the new card
+                        initDragAndDrop();
+                    }
                 }
             }
             
@@ -618,7 +765,7 @@
                 tierCards.addEventListener('dragover', dragOver);
                 tierCards.addEventListener('dragenter', dragEnter);
                 tierCards.addEventListener('dragleave', dragLeave);
-                tierCards.addEventListener('drop', drop);
+                tierCards.addEventListener('drop', tierDrop);
                 
                 tierListContainer.appendChild(tierRow);
             });
@@ -705,7 +852,7 @@
                             tierCards.addEventListener('dragover', dragOver);
                             tierCards.addEventListener('dragenter', dragEnter);
                             tierCards.addEventListener('dragleave', dragLeave);
-                            tierCards.addEventListener('drop', drop);
+                            tierCards.addEventListener('drop', tierDrop);
                             
                             tierRow.appendChild(tierLabel);
                             tierRow.appendChild(tierCards);
@@ -716,31 +863,25 @@
                         tier.cards.forEach(cardId => {
                             const card = cardElements[cardId];
                             if (card) {
-                                const tierCard = document.createElement('div');
-                                tierCard.className = 'tier-card';
-                                tierCard.setAttribute('data-id', cardId);
+                                const tierCard = createTierCardElement(cardId);
                                 
-                                const img = document.createElement('img');
-                                img.src = card.querySelector('img').src;
-                                img.alt = card.getAttribute('data-name');
-                                
-                                tierCard.appendChild(img);
-                                
-                                // Add click event to show large card
-                                tierCard.addEventListener('click', function() {
-                                    const clickedCardId = this.getAttribute('data-id');
-                                    const clickedCard = cardElements[clickedCardId];
+                                if (tierCard) {
+                                    // Add click event to show large card
+                                    tierCard.addEventListener('click', function() {
+                                        const clickedCardId = this.getAttribute('data-id');
+                                        const clickedCard = cardElements[clickedCardId];
+                                        
+                                        largeCard.src = clickedCard.querySelector('img').src;
+                                        largeCard.alt = clickedCard.getAttribute('data-name');
+                                        largeCardName.textContent = clickedCard.getAttribute('data-name');
+                                        largeCardNumber.textContent = `${clickedCard.getAttribute('data-number')} (#${clickedCard.getAttribute('data-dex')})`;
+                                    });
                                     
-                                    largeCard.src = clickedCard.querySelector('img').src;
-                                    largeCard.alt = clickedCard.getAttribute('data-name');
-                                    largeCardName.textContent = clickedCard.getAttribute('data-name');
-                                    largeCardNumber.textContent = `${clickedCard.getAttribute('data-number')} (#${clickedCard.getAttribute('data-dex')})`;
-                                });
-                                
-                                tierCards.appendChild(tierCard);
-                                
-                                // Mark card as being in a tier
-                                cardsInTiers.add(cardId);
+                                    tierCards.appendChild(tierCard);
+                                    
+                                    // Mark card as being in a tier
+                                    cardsInTiers.add(cardId);
+                                }
                             }
                         });
                         
