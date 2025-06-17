@@ -25,19 +25,19 @@
             display: flex;
             flex: 1;
             gap: 20px;
+            align-items: flex-end; /* Align card display with bottom */
         }
         
         .card-display {
             width: 250px;
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;
-            align-items: center;
+            justify-content: flex-end;
             position: relative;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: transparent;
             border-radius: 10px;
-            padding: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            padding: 0;
+            box-shadow: none;
         }
         
         .card-display img {
@@ -46,14 +46,17 @@
             object-fit: contain;
             border-radius: 10px;
             transition: transform 0.2s;
+            cursor: nwse-resize;
+            resize: both;
         }
         
         .card-display-info {
             text-align: center;
             margin-top: 10px;
-            padding: 10px;
+            padding: 5px;
             border-radius: 5px;
             width: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
         }
         
         .tier-list-container {
@@ -66,7 +69,7 @@
             display: flex;
             margin-bottom: 10px;
             min-height: 120px;
-            background-color: rgba(255,255,255,0.1);
+            background-color: rgba(0, 0, 0, 0.5); /* Darker tier background */
             border-radius: 5px;
             overflow: hidden;
         }
@@ -116,7 +119,7 @@
             align-content: flex-start;
             padding: 5px;
             gap: 5px;
-            background-color: rgba(255,255,255,0.1);
+            background-color: rgba(0, 0, 0, 0.3); /* Darker cards background */
             min-height: 110px;
         }
         
@@ -280,23 +283,32 @@
         /* Card display toggle */
         .card-display-toggle {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 5px;
+            right: 5px;
             background-color: #333;
             color: white;
             border: none;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
+            width: 25px;
+            height: 25px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             z-index: 10;
+            font-size: 14px;
         }
         
         .card-display.hidden {
             display: none;
+        }
+        
+        /* Resizable card */
+        .resizable {
+            resize: both;
+            overflow: hidden;
+            max-width: 100%;
+            max-height: 100%;
         }
     </style>
 </head>
@@ -305,23 +317,21 @@
         <img src="https://raw.githubusercontent.com/TheRSigma/BBWFTierList/main/images/blackbolt-logo.png" alt="Black Bolt" class="logo" id="blackbolt-logo">
         <div class="title-container">
             <h1>Black Bolt + White Flare Illustration Rares Tier List</h1>
+            <div class="controls">
+                <button id="add-tier">Add Tier</button>
+                <button id="save-tier-list">Save Tier List</button>
+                <button id="load-tier-list">Load Tier List</button>
+                <button id="reset-tier-list">Reset</button>
+                <button id="toggle-card-display">Hide Card Display</button>
+            </div>
         </div>
         <img src="https://raw.githubusercontent.com/TheRSigma/BBWFTierList/main/images/whiteflare-logo.png" alt="White Flare" class="logo" id="whiteflare-logo">
-    </div>
-    
-    <div class="controls">
-        <button id="add-tier">Add Tier</button>
-        <button id="save-tier-list">Save Tier List</button>
-        <button id="load-tier-list">Load Tier List</button>
-        <button id="reset-tier-list">Reset</button>
-        <button id="export-jpg">Export as JPG</button>
-        <button id="toggle-card-display">Hide Card Display</button>
     </div>
     
     <div class="container">
         <div class="card-display">
             <button class="card-display-toggle" id="card-display-toggle">×</button>
-            <img id="large-card" src="https://raw.githubusercontent.com/TheRSigma/BBWFTierList/main/images/blackbolt-87.jpg" alt="Selected Card">
+            <img id="large-card" class="resizable" src="https://raw.githubusercontent.com/TheRSigma/BBWFTierList/main/images/blackbolt-87.jpg" alt="Selected Card">
             <div class="card-display-info">
                 <div id="large-card-name">Select a card</div>
             </div>
@@ -1074,13 +1084,6 @@
                 }
             });
             
-            // Export as JPG functionality
-            document.getElementById('export-jpg').addEventListener('click', function() {
-                if (confirm('Export the current tier list as a JPG image?')) {
-                    exportTierListAsJPG();
-                }
-            });
-            
             // Toggle card display functionality
             document.getElementById('toggle-card-display').addEventListener('click', function() {
                 const cardDisplay = document.querySelector('.card-display');
@@ -1102,6 +1105,19 @@
                 
                 cardDisplay.classList.add('hidden');
                 toggleButton.textContent = 'Show Card Display';
+            });
+            
+            // Black Bolt logo click handler - toggle controls
+            document.getElementById('blackbolt-logo').addEventListener('click', function() {
+                const controls = document.querySelector('.controls');
+                controls.classList.toggle('hidden');
+            });
+            
+            // White Flare logo click handler - export as JPG
+            document.getElementById('whiteflare-logo').addEventListener('click', function() {
+                if (confirm('Export the current tier list as a JPG image?')) {
+                    exportTierListAsJPG();
+                }
             });
             
             // Function to export tier list as JPG
@@ -1141,8 +1157,47 @@
                 });
             }
             
+            // Make the large card resizable
+            function makeResizable() {
+                const element = document.getElementById('large-card');
+                let startX, startY, startWidth, startHeight;
+                
+                function doDrag(e) {
+                    element.style.width = (startWidth + e.clientX - startX) + 'px';
+                    element.style.height = (startHeight + e.clientY - startY) + 'px';
+                }
+                
+                function stopDrag() {
+                    document.documentElement.removeEventListener('mousemove', doDrag, false);
+                    document.documentElement.removeEventListener('mouseup', stopDrag, false);
+                }
+                
+                function initDrag(e) {
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    startWidth = parseInt(document.defaultView.getComputedStyle(element).width, 10);
+                    startHeight = parseInt(document.defaultView.getComputedStyle(element).height, 10);
+                    document.documentElement.addEventListener('mousemove', doDrag, false);
+                    document.documentElement.addEventListener('mouseup', stopDrag, false);
+                }
+                
+                const resizer = document.createElement('div');
+                resizer.style.width = '10px';
+                resizer.style.height = '10px';
+                resizer.style.background = 'rgba(255,255,255,0.5)';
+                resizer.style.position = 'absolute';
+                resizer.style.right = '0';
+                resizer.style.bottom = '0';
+                resizer.style.cursor = 'nwse-resize';
+                resizer.addEventListener('mousedown', initDrag, false);
+                
+                element.style.position = 'relative';
+                element.appendChild(resizer);
+            }
+            
             // Initial render
             renderCards();
+            makeResizable();
             
             // Show first card by default
             if (cardData.length > 0) {
