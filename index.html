@@ -14,6 +14,11 @@
             flex-direction: column;
             min-height: 100vh;
             color: white;
+            background-image: 
+                linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000),
+                linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
         }
         
         .container {
@@ -26,9 +31,13 @@
             width: 250px;
             display: flex;
             flex-direction: column;
-            justify-content: flex-end;
+            justify-content: flex-start;
             align-items: center;
             position: relative;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
         }
         
         .card-display img {
@@ -36,25 +45,15 @@
             max-height: 350px;
             object-fit: contain;
             border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
             transition: transform 0.2s;
-            cursor: grab;
-        }
-        
-        .card-display img.dragging {
-            transform: scale(1.1);
-            opacity: 0.8;
-            cursor: grabbing;
         }
         
         .card-display-info {
             text-align: center;
             margin-top: 10px;
-            background: #444;
             padding: 10px;
             border-radius: 5px;
             width: 100%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         
         .tier-list-container {
@@ -126,7 +125,7 @@
             flex-wrap: wrap;
             gap: 10px;
             padding: 15px;
-            background-color: #444;
+            background-color: rgba(0, 0, 0, 0.7);
             border-radius: 10px;
             margin-top: 20px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
@@ -194,6 +193,7 @@
             justify-content: center;
             gap: 10px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         
         button {
@@ -239,6 +239,11 @@
             .card {
                 width: 80px;
             }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
         }
 
         /* Header with logos */
@@ -271,6 +276,28 @@
         .controls.hidden {
             display: none;
         }
+        
+        /* Card display toggle */
+        .card-display-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        .card-display.hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -287,10 +314,13 @@
         <button id="save-tier-list">Save Tier List</button>
         <button id="load-tier-list">Load Tier List</button>
         <button id="reset-tier-list">Reset</button>
+        <button id="export-jpg">Export as JPG</button>
+        <button id="toggle-card-display">Hide Card Display</button>
     </div>
     
     <div class="container">
         <div class="card-display">
+            <button class="card-display-toggle" id="card-display-toggle">×</button>
             <img id="large-card" src="https://raw.githubusercontent.com/TheRSigma/BBWFTierList/main/images/blackbolt-87.jpg" alt="Selected Card">
             <div class="card-display-info">
                 <div id="large-card-name">Select a card</div>
@@ -325,6 +355,7 @@
         <!-- Cards will be inserted here by JavaScript -->
     </div>
 
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Card data - combined and sorted by National Dex number
@@ -526,6 +557,7 @@
                 nameSpan.textContent = card.name;
                 
                 cardInfo.appendChild(nameSpan);
+                
                 cardElement.appendChild(img);
                 cardElement.appendChild(cardInfo);
                 
@@ -575,7 +607,6 @@
                 const tierCards = document.querySelectorAll('.tier-card');
                 const tierContainers = document.querySelectorAll('.tier-cards');
                 const cardPoolContainer = document.getElementById('card-pool');
-                const largeCardImg = document.getElementById('large-card');
                 
                 // Clear existing event listeners
                 cards.forEach(card => {
@@ -615,12 +646,6 @@
                 cardPoolContainer.addEventListener('dragenter', dragEnter);
                 cardPoolContainer.addEventListener('dragleave', dragLeave);
                 cardPoolContainer.addEventListener('drop', cardPoolDrop);
-                
-                // Add drag from large card
-                largeCardImg.removeEventListener('dragstart', largeCardDragStart);
-                largeCardImg.removeEventListener('dragend', largeCardDragEnd);
-                largeCardImg.addEventListener('dragstart', largeCardDragStart);
-                largeCardImg.addEventListener('dragend', largeCardDragEnd);
             }
             
             // Card click handlers
@@ -644,42 +669,40 @@
             
             // Drag and drop functions
             let draggedCard = null;
-            let draggedCardType = null; // 'card', 'tier-card', or 'large-card'
+            let draggedCardType = null; // 'card' or 'tier-card'
             let draggedCardIndex = -1;
-            let draggedCardId = null;
             
             function dragStart() {
                 draggedCard = this;
                 draggedCardType = 'card';
                 draggedCardIndex = Array.from(this.parentNode.children).indexOf(this);
-                draggedCardId = this.getAttribute('data-id');
                 setTimeout(() => {
                     this.classList.add('dragging');
+                    
+                    // Show large card when dragging starts
+                    const cardId = this.getAttribute('data-id');
+                    const card = cardElements[cardId];
+                    
+                    largeCard.src = card.querySelector('img').src;
+                    largeCard.alt = card.getAttribute('data-name');
+                    largeCardName.textContent = card.getAttribute('data-name');
                 }, 0);
             }
             
             function tierCardDragStart() {
                 draggedCard = this;
                 draggedCardType = 'tier-card';
-                draggedCardId = this.getAttribute('data-id');
                 setTimeout(() => {
                     this.classList.add('dragging');
+                    
+                    // Show large card when dragging starts
+                    const cardId = this.getAttribute('data-id');
+                    const card = cardElements[cardId];
+                    
+                    largeCard.src = card.querySelector('img').src;
+                    largeCard.alt = card.getAttribute('data-name');
+                    largeCardName.textContent = card.getAttribute('data-name');
                 }, 0);
-            }
-            
-            function largeCardDragStart() {
-                if (!largeCard.src.includes('blackbolt-87.jpg')) { // Don't drag the default placeholder
-                    draggedCard = this;
-                    draggedCardType = 'large-card';
-                    draggedCardId = Object.keys(cardElements).find(id => 
-                        cardElements[id].querySelector('img').src === this.src
-                    );
-                    setTimeout(() => {
-                        this.classList.add('dragging');
-                    }, 0);
-                } else {
-                    event.preventDefault(); // Prevent dragging the placeholder
-                }
             }
             
             function dragEnd() {
@@ -687,7 +710,6 @@
                 draggedCard = null;
                 draggedCardType = null;
                 draggedCardIndex = -1;
-                draggedCardId = null;
             }
             
             function tierCardDragEnd() {
@@ -695,15 +717,6 @@
                 draggedCard = null;
                 draggedCardType = null;
                 draggedCardIndex = -1;
-                draggedCardId = null;
-            }
-            
-            function largeCardDragEnd() {
-                this.classList.remove('dragging');
-                draggedCard = null;
-                draggedCardType = null;
-                draggedCardIndex = -1;
-                draggedCardId = null;
             }
             
             function dragOver(e) {
@@ -720,22 +733,22 @@
             }
             
             function tierDrop(e) {
+                e.preventDefault();
                 this.classList.remove('drag-over');
                 
-                if (draggedCardType === 'card' || draggedCardType === 'large-card') {
-                    // Moving from card pool or large card to tier
-                    const cardId = draggedCardType === 'card' ? 
-                        draggedCard.getAttribute('data-id') : draggedCardId;
+                if (draggedCardType === 'card') {
+                    // Moving from card pool to tier
+                    const cardId = draggedCard.getAttribute('data-id');
                     
                     // Only proceed if the card isn't already in a tier
                     if (!cardsInTiers.has(cardId)) {
                         const tierCard = createTierCardElement(cardId);
                         
                         if (tierCard) {
-                            // Determine drop position
+                            // Get drop position
                             const dropPosition = getDropPosition(this, e.clientX, e.clientY);
                             
-                            // Add to tier at correct position
+                            // Add to tier at the correct position
                             if (dropPosition >= 0 && dropPosition < this.children.length) {
                                 this.insertBefore(tierCard, this.children[dropPosition]);
                             } else {
@@ -745,10 +758,8 @@
                             // Mark card as being in a tier
                             cardsInTiers.add(cardId);
                             
-                            // Remove from card pool if it was a card
-                            if (draggedCardType === 'card') {
-                                draggedCard.remove();
-                            }
+                            // Remove from card pool
+                            draggedCard.remove();
                             
                             // Adjust card sizes if tier is getting full
                             adjustCardSizes(this);
@@ -758,15 +769,15 @@
                         }
                     }
                 } else if (draggedCardType === 'tier-card') {
-                    // Moving between tiers or within same tier
+                    // Moving between tiers or within the same tier
                     const cardId = draggedCard.getAttribute('data-id');
                     const tierCard = createTierCardElement(cardId);
                     
                     if (tierCard) {
-                        // Determine drop position
+                        // Get drop position
                         const dropPosition = getDropPosition(this, e.clientX, e.clientY);
                         
-                        // Add to tier at correct position
+                        // Add to tier at the correct position
                         if (dropPosition >= 0 && dropPosition < this.children.length) {
                             this.insertBefore(tierCard, this.children[dropPosition]);
                         } else {
@@ -786,6 +797,7 @@
             }
             
             function cardPoolDrop(e) {
+                e.preventDefault();
                 this.classList.remove('drag-over');
                 
                 if (draggedCardType === 'tier-card') {
@@ -805,10 +817,14 @@
                             img: card.querySelector('img').src
                         });
                         
-                        // Insert at the drop position
+                        // Insert at the original position or at the drop position
                         const dropPosition = getDropPosition(this, e.clientX, e.clientY);
-                        if (dropPosition >= 0 && dropPosition < this.children.length) {
-                            this.insertBefore(newCard, this.children[dropPosition]);
+                        if (dropPosition >= 0) {
+                            if (dropPosition < this.children.length) {
+                                this.insertBefore(newCard, this.children[dropPosition]);
+                            } else {
+                                this.appendChild(newCard);
+                            }
                         } else {
                             this.appendChild(newCard);
                         }
@@ -840,27 +856,26 @@
                 const cards = container.children;
                 const containerRect = container.getBoundingClientRect();
                 
-                // Check if we're dropping between cards
-                for (let i = 0; i < cards.length; i++) {
-                    const cardRect = cards[i].getBoundingClientRect();
-                    const cardMiddle = cardRect.left + cardRect.width / 2;
-                    
-                    // For horizontal containers (tier rows)
-                    if (container.classList.contains('tier-cards')) {
-                        if (x < cardMiddle) {
-                            return i;
-                        }
-                    } 
-                    // For vertical containers (card pool)
-                    else {
-                        if (y < cardRect.top + cardRect.height / 2) {
+                // For horizontal containers (card pool)
+                if (container.classList.contains('card-pool')) {
+                    for (let i = 0; i < cards.length; i++) {
+                        const cardRect = cards[i].getBoundingClientRect();
+                        if (x < cardRect.left + cardRect.width / 2) {
                             return i;
                         }
                     }
+                    return cards.length;
                 }
-                
-                // Default to end of container
-                return cards.length;
+                // For tier card containers
+                else {
+                    for (let i = 0; i < cards.length; i++) {
+                        const cardRect = cards[i].getBoundingClientRect();
+                        if (x < cardRect.left + cardRect.width / 2) {
+                            return i;
+                        }
+                    }
+                    return cards.length;
+                }
             }
             
             // Adjust card sizes in a tier based on how many cards are in it
@@ -1059,74 +1074,71 @@
                 }
             });
             
-            // Logo click handlers
-            document.getElementById('blackbolt-logo').addEventListener('click', function() {
-                const controls = document.querySelector('.controls');
-                controls.classList.toggle('hidden');
-            });
-            
-            document.getElementById('whiteflare-logo').addEventListener('click', function() {
-                // Export tier list as JPG with confirmation
-                if (confirm('Export your tier list as an image? This may take a moment.')) {
+            // Export as JPG functionality
+            document.getElementById('export-jpg').addEventListener('click', function() {
+                if (confirm('Export the current tier list as a JPG image?')) {
                     exportTierListAsJPG();
                 }
             });
             
+            // Toggle card display functionality
+            document.getElementById('toggle-card-display').addEventListener('click', function() {
+                const cardDisplay = document.querySelector('.card-display');
+                const toggleButton = document.getElementById('toggle-card-display');
+                
+                if (cardDisplay.classList.contains('hidden')) {
+                    cardDisplay.classList.remove('hidden');
+                    toggleButton.textContent = 'Hide Card Display';
+                } else {
+                    cardDisplay.classList.add('hidden');
+                    toggleButton.textContent = 'Show Card Display';
+                }
+            });
+            
+            // Card display toggle button
+            document.getElementById('card-display-toggle').addEventListener('click', function() {
+                const cardDisplay = document.querySelector('.card-display');
+                const toggleButton = document.getElementById('toggle-card-display');
+                
+                cardDisplay.classList.add('hidden');
+                toggleButton.textContent = 'Show Card Display';
+            });
+            
             // Function to export tier list as JPG
             function exportTierListAsJPG() {
-                // We'll use html2canvas library for this
-                if (typeof html2canvas === 'undefined') {
-                    // Load the library if not already loaded
-                    const script = document.createElement('script');
-                    script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
-                    script.onload = function() {
-                        captureTierList();
-                    };
-                    document.head.appendChild(script);
-                } else {
-                    captureTierList();
-                }
+                // Hide controls and card display for the screenshot
+                const controls = document.querySelector('.controls');
+                const cardDisplay = document.querySelector('.card-display');
+                const originalControlsDisplay = controls.style.display;
+                const originalCardDisplay = cardDisplay.style.display;
                 
-                function captureTierList() {
-                    // Create a container for the screenshot
-                    const container = document.createElement('div');
-                    container.style.position = 'absolute';
-                    container.style.left = '-9999px';
-                    container.style.backgroundColor = '#333333';
-                    container.style.padding = '20px';
-                    container.style.borderRadius = '10px';
+                controls.style.display = 'none';
+                cardDisplay.style.display = 'none';
+                
+                // Capture the tier list container
+                const container = document.querySelector('.container');
+                
+                html2canvas(container, {
+                    backgroundColor: null, // Transparent background
+                    scale: 2, // Higher quality
+                    logging: false,
+                    useCORS: true // For loading images from external sources
+                }).then(canvas => {
+                    // Restore elements
+                    controls.style.display = originalControlsDisplay;
+                    cardDisplay.style.display = originalCardDisplay;
                     
-                    // Clone the tier list container
-                    const tierListClone = document.querySelector('.container').cloneNode(true);
-                    
-                    // Remove the card display from the clone
-                    tierListClone.querySelector('.card-display').remove();
-                    
-                    // Add to document
-                    container.appendChild(tierListClone);
-                    document.body.appendChild(container);
-                    
-                    // Capture the cloned container
-                    html2canvas(container, {
-                        backgroundColor: '#333333',
-                        scale: 2, // Higher quality
-                        logging: false,
-                        useCORS: true // For loading images from external sources
-                    }).then(canvas => {
-                        // Remove the temporary container
-                        document.body.removeChild(container);
-                        
-                        // Convert canvas to JPG and download
-                        const link = document.createElement('a');
-                        link.download = 'bbwf-tier-list.jpg';
-                        link.href = canvas.toDataURL('image/jpeg', 0.9);
-                        link.click();
-                    }).catch(err => {
-                        console.error('Error capturing tier list:', err);
-                        document.body.removeChild(container);
-                        alert('Error exporting tier list. Please try again.');
-                    });
-                }
+                    // Convert canvas to JPG and download
+                    const link = document.createElement('a');
+                    link.download = 'bbwf-tier-list.jpg';
+                    link.href = canvas.toDataURL('image/jpeg', 0.9);
+                    link.click();
+                }).catch(err => {
+                    console.error('Error capturing tier list:', err);
+                    controls.style.display = originalControlsDisplay;
+                    cardDisplay.style.display = originalCardDisplay;
+                    alert('Error exporting tier list. Please try again.');
+                });
             }
             
             // Initial render
