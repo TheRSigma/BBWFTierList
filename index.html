@@ -13,13 +13,13 @@
             flex-direction: column;
             min-height: 100vh;
             color: white;
-            /* Checkered background that stays black and white */
+            /* Larger checkered background */
             background-color: white;
             background-image: 
                 linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black),
                 linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black);
-            background-size: 40px 40px;
-            background-position: 0 0, 20px 20px;
+            background-size: 60px 60px; /* Increased from 40px */
+            background-position: 0 0, 30px 30px; /* Adjusted for new size */
         }
         
         .container {
@@ -1147,55 +1147,55 @@
             });
             
             // Function to export tier list as JPG
-            function exportTierListAsJPG() {
-                // Hide controls and card display for the screenshot
-                const controls = document.querySelector('.controls');
-                const cardDisplay = document.querySelector('.card-display');
-                const originalControlsDisplay = controls.style.display;
-                const originalCardDisplay = cardDisplay.style.display;
-                
-                controls.style.display = 'none';
-                cardDisplay.style.display = 'none';
-                
-                // Capture the entire tier list container including cards
-                const container = document.querySelector('.tier-list-container');
-                
-                // Temporarily make all tier cards visible at full size
-                const tierCards = document.querySelectorAll('.tier-card');
-                const originalSizes = [];
-                tierCards.forEach(card => {
-                    originalSizes.push(card.style.width);
-                    card.style.width = '80px'; // Standard size for export
+    function exportTierListAsJPG() {
+            // Hide controls and card display for the screenshot
+            const controls = document.querySelector('.controls');
+            const cardDisplay = document.querySelector('.card-display');
+            const originalControlsDisplay = controls.style.display;
+            const originalCardDisplay = cardDisplay.style.display;
+            
+            controls.style.display = 'none';
+            cardDisplay.style.display = 'none';
+            
+            // Capture the entire tier list container including cards
+            const container = document.querySelector('.tier-list-container');
+            
+            // Temporarily make all tier cards visible at full size
+            const tierCards = document.querySelectorAll('.tier-card');
+            const originalSizes = [];
+            tierCards.forEach(card => {
+                originalSizes.push(card.style.width);
+                card.style.width = '80px'; // Standard size for export
+            });
+            
+            html2canvas(container, {
+                backgroundColor: '#FFFFFF', // White background for export
+                scale: 2, // Higher quality
+                logging: false,
+                useCORS: true, // For loading images from external sources
+                allowTaint: true // May be needed for some images
+            }).then(canvas => {
+                // Restore elements and sizes
+                controls.style.display = originalControlsDisplay;
+                cardDisplay.style.display = originalCardDisplay;
+                tierCards.forEach((card, index) => {
+                    card.style.width = originalSizes[index];
                 });
                 
-                html2canvas(container, {
-                    backgroundColor: '#FFFFFF', // White background for export
-                    scale: 2, // Higher quality
-                    logging: false,
-                    useCORS: true, // For loading images from external sources
-                    allowTaint: true // May be needed for some images
-                }).then(canvas => {
-                    // Restore elements and sizes
-                    controls.style.display = originalControlsDisplay;
-                    cardDisplay.style.display = originalCardDisplay;
-                    tierCards.forEach((card, index) => {
-                        card.style.width = originalSizes[index];
-                    });
-                    
-                    // Convert canvas to JPG and download
-                    const link = document.createElement('a');
-                    link.download = 'bbwf-tier-list.jpg';
-                    link.href = canvas.toDataURL('image/jpeg', 0.9);
-                    link.click();
-                }).catch(err => {
-                    console.error('Error capturing tier list:', err);
-                    // Restore elements on error
-                    controls.style.display = originalControlsDisplay;
-                    cardDisplay.style.display = originalCardDisplay;
-                    tierCards.forEach((card, index) => {
-                        card.style.width = originalSizes[index];
-                    });
-                    alert('Error exporting tier list. Please try again.');
+                // Open image in new tab instead of downloading
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                const newTab = window.open('about:blank', '_blank');
+                newTab.document.write(`<img src="${dataUrl}" style="max-width:100%;height:auto;">`);
+                newTab.document.close();
+            }).catch(err => {
+                console.error('Error capturing tier list:', err);
+                // Restore elements on error
+                controls.style.display = originalControlsDisplay;
+                cardDisplay.style.display = originalCardDisplay;
+                tierCards.forEach((card, index) => {
+                    card.style.width = originalSizes[index];
+                });
+                alert('Error exporting tier list. Please try again.');
                 });
             }
             
