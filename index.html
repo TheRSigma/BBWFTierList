@@ -7,16 +7,17 @@
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            background-color: #333333;
             margin: 0;
             padding: 20px;
             display: flex;
             flex-direction: column;
             min-height: 100vh;
             color: white;
+            /* Checkered background that stays black and white */
+            background-color: white;
             background-image: 
-                linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000),
-                linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000);
+                linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black),
+                linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black);
             background-size: 40px 40px;
             background-position: 0 0, 20px 20px;
         }
@@ -84,6 +85,13 @@
             font-size: 1.2em;
             cursor: pointer;
             user-select: none;
+            transition: all 0.2s;
+        }
+        
+        .tier-label.drag-over {
+            padding: 5px;
+            border: 2px dashed white;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
         }
         
         /* Colorful tier labels */
@@ -735,16 +743,34 @@
             
             function dragEnter(e) {
                 e.preventDefault();
-                this.classList.add('drag-over');
+                if (this.classList.contains('tier-cards')) {
+                    // Highlight the tier label instead of the cards area
+                    const tierLabel = this.closest('.tier-row').querySelector('.tier-label');
+                    if (tierLabel) {
+                        tierLabel.classList.add('drag-over');
+                    }
+                } else {
+                    this.classList.add('drag-over');
+                }
             }
             
             function dragLeave() {
-                this.classList.remove('drag-over');
+                if (this.classList.contains('tier-cards')) {
+                    const tierLabel = this.closest('.tier-row').querySelector('.tier-label');
+                    if (tierLabel) {
+                        tierLabel.classList.remove('drag-over');
+                    }
+                } else {
+                    this.classList.remove('drag-over');
+                }
             }
             
             function tierDrop(e) {
                 e.preventDefault();
-                this.classList.remove('drag-over');
+                const tierLabel = this.closest('.tier-row').querySelector('.tier-label');
+                if (tierLabel) {
+                    tierLabel.classList.remove('drag-over');
+                }
                 
                 if (draggedCardType === 'card') {
                     // Moving from card pool to tier
@@ -1131,18 +1157,30 @@
                 controls.style.display = 'none';
                 cardDisplay.style.display = 'none';
                 
-                // Capture the tier list container
-                const container = document.querySelector('.container');
+                // Capture the entire tier list container including cards
+                const container = document.querySelector('.tier-list-container');
+                
+                // Temporarily make all tier cards visible at full size
+                const tierCards = document.querySelectorAll('.tier-card');
+                const originalSizes = [];
+                tierCards.forEach(card => {
+                    originalSizes.push(card.style.width);
+                    card.style.width = '80px'; // Standard size for export
+                });
                 
                 html2canvas(container, {
-                    backgroundColor: null, // Transparent background
+                    backgroundColor: '#FFFFFF', // White background for export
                     scale: 2, // Higher quality
                     logging: false,
-                    useCORS: true // For loading images from external sources
+                    useCORS: true, // For loading images from external sources
+                    allowTaint: true // May be needed for some images
                 }).then(canvas => {
-                    // Restore elements
+                    // Restore elements and sizes
                     controls.style.display = originalControlsDisplay;
                     cardDisplay.style.display = originalCardDisplay;
+                    tierCards.forEach((card, index) => {
+                        card.style.width = originalSizes[index];
+                    });
                     
                     // Convert canvas to JPG and download
                     const link = document.createElement('a');
@@ -1151,8 +1189,12 @@
                     link.click();
                 }).catch(err => {
                     console.error('Error capturing tier list:', err);
+                    // Restore elements on error
                     controls.style.display = originalControlsDisplay;
                     cardDisplay.style.display = originalCardDisplay;
+                    tierCards.forEach((card, index) => {
+                        card.style.width = originalSizes[index];
+                    });
                     alert('Error exporting tier list. Please try again.');
                 });
             }
