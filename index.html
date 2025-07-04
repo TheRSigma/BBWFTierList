@@ -90,10 +90,9 @@
         
                 /* Modified drag-over to keep original colors */
         .tier-label.drag-over {
-            padding: 5px;
-            border: 2px dashed white;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-            opacity: 0.9; /* Slightly transparent instead of changing color */
+        border: 2px dashed white;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        /* Remove opacity change - keep original colors */
         }
         
         /* Colorful tier labels */
@@ -228,8 +227,8 @@
         }
         
         .drag-over {
-            background-color: rgba(255, 255, 255, 0.2) !important;
-            border: 2px dashed rgba(255, 255, 255, 0.5);
+        background-color: rgba(255, 255, 255, 0.2) !important;
+        border: 2px dashed rgba(255, 255, 255, 0.5);
         }
 
         /* Mobile-specific styles */
@@ -746,29 +745,27 @@
                 e.preventDefault();
             }
             
-            function dragEnter(e) {
-                e.preventDefault();
-                if (this.classList.contains('tier-cards')) {
-                    // Highlight the tier label instead of the cards area
-                    const tierLabel = this.closest('.tier-row').querySelector('.tier-label');
-                    if (tierLabel) {
-                        tierLabel.classList.add('drag-over');
-                    }
-                } else {
-                    this.classList.add('drag-over');
-                }
-            }
-            
-            function dragLeave() {
-                if (this.classList.contains('tier-cards')) {
-                    const tierLabel = this.closest('.tier-row').querySelector('.tier-label');
-                    if (tierLabel) {
-                        tierLabel.classList.remove('drag-over');
-                    }
-                } else {
-                    this.classList.remove('drag-over');
-                }
-            }
+        function dragEnter(e) {
+    e.preventDefault();
+    if (this.classList.contains('tier-cards')) {
+        // Only highlight the tier label
+        const tierLabel = this.closest('.tier-row').querySelector('.tier-label');
+        if (tierLabel) {
+            tierLabel.classList.add('drag-over');
+        }
+    }
+    // Removed the else clause
+}
+
+function dragLeave() {
+    if (this.classList.contains('tier-cards')) {
+        const tierLabel = this.closest('.tier-row').querySelector('.tier-label');
+        if (tierLabel) {
+            tierLabel.classList.remove('drag-over');
+        }
+    }
+    // Removed the else clause
+}
             
             function tierDrop(e) {
                 e.preventDefault();
